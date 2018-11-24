@@ -43,14 +43,16 @@ func TestTypescriptifyWithTypes(t *testing.T) {
 	converter.CreateFromMethod = false
 	converter.BackupDir = ""
 
-	desiredResult := `export class Dummy {
+	desiredResult := `export interface Dummy {
         something: string;
 }
-export class Address {
+
+export interface Address {
         duration: number;
         text: string;
 }
-export class Person {
+
+export interface Person {
         name: string;
         nicknames: string[];
 		addresses: Address[];
@@ -71,14 +73,16 @@ func TestTypescriptifyWithInstances(t *testing.T) {
 	converter.DontExport = true
 	converter.BackupDir = ""
 
-	desiredResult := `class Dummy {
+	desiredResult := `interface Dummy {
         something: string;
 }
-class Address {
+
+interface Address {
         duration: number;
         text: string;
 }
-class Person {
+
+interface Person {
         name: string;
         nicknames: string[];
 		addresses: Address[];
@@ -98,14 +102,16 @@ func TestTypescriptifyWithDoubleClasses(t *testing.T) {
 	converter.CreateFromMethod = false
 	converter.BackupDir = ""
 
-	desiredResult := `export class Dummy {
+	desiredResult := `export interface Dummy {
         something: string;
 }
-export class Address {
+
+export interface Address {
         duration: number;
         text: string;
 }
-export class Person {
+
+export interface Person {
         name: string;
 		nicknames: string[];
 		addresses: Address[];
@@ -128,11 +134,12 @@ func TestWithPrefixes(t *testing.T) {
 	converter.DontExport = true
 	converter.BackupDir = ""
 
-	desiredResult := `class test_Address {
+	desiredResult := `interface test_Address {
         duration: number;
         text: string;
 }
-class test_Dummy {
+
+interface test_Dummy {
         something: string;
 }`
 	testConverter(t, converter, desiredResult)
