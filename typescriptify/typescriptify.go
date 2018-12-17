@@ -58,7 +58,7 @@ func New() *TypeScriptify {
 
 	result.types = types
 
-	result.Indent = "    "
+	result.Indent = "	"
 	result.CreateFromMethod = true
 
 	return result
@@ -196,7 +196,7 @@ func (t TypeScriptify) ConvertToFile(fileName string) error {
 		return err
 	}
 
-	f.WriteString("/* Do not change, this code is generated from Golang structs */\n\n")
+	f.WriteString("/* Do not change, this code is generated from Golang structs */\n")
 	f.WriteString(converted)
 	if err != nil {
 		return err
@@ -228,12 +228,16 @@ func (t *TypeScriptify) convertType(typeOf reflect.Type, customCode map[string]s
 		}
 		jsonTag := field.Tag.Get("json")
 		jsonFieldName := ""
+
+		// Extract JSON field name
 		if len(jsonTag) > 0 {
 			jsonTagParts := strings.Split(jsonTag, ",")
 			if len(jsonTagParts) > 0 {
 				jsonFieldName = strings.Trim(jsonTagParts[0], t.Indent)
 			}
 		}
+
+		// Convert only if JSON field name was valid
 		if len(jsonFieldName) > 0 && jsonFieldName != "-" {
 			var err error
 			customTransformation := field.Tag.Get(tsTransformTag)
@@ -295,17 +299,27 @@ type typeScriptClassBuilder struct {
 	createFromMethodBody string
 }
 
+func getOptionalFlag(field reflect.StructField) string {
+	optional := field.Tag.Get("optional")
+
+	if optional == "true" {
+		return "?"
+	} else {
+		return ""
+	}
+}
+
 func (t *typeScriptClassBuilder) AddSimpleArrayField(fieldName string, field reflect.StructField) error {
 	fieldType, kind := field.Type.Elem().Name(), field.Type.Elem().Kind()
 	typeScriptType := t.types[kind]
 
 	if len(fieldName) > 0 {
 		if customTSType := field.Tag.Get(tsType); len(customTSType) > 0 {
-			t.fields += fmt.Sprintf("%s%s: %s;\n", t.indent, fieldName, customTSType)
+			t.fields += fmt.Sprintf("%s%s%s: %s;\n", t.indent, fieldName, getOptionalFlag(field), customTSType)
 			t.createFromMethodBody += fmt.Sprintf("%s%sresult.%s = source[\"%s\"];\n", t.indent, t.indent, fieldName, fieldName)
 			return nil
 		} else if len(typeScriptType) > 0 {
-			t.fields += fmt.Sprintf("%s%s: %s[];\n", t.indent, fieldName, typeScriptType)
+			t.fields += fmt.Sprintf("%s%s%s: %s[];\n", t.indent, fieldName, getOptionalFlag(field), typeScriptType)
 			t.createFromMethodBody += fmt.Sprintf("%s%sresult.%s = source[\"%s\"];\n", t.indent, t.indent, fieldName, fieldName)
 			return nil
 		}
@@ -326,7 +340,7 @@ func (t *typeScriptClassBuilder) AddSimpleField(fieldName string, field reflect.
 	customTransformation := field.Tag.Get(tsTransformTag)
 
 	if len(typeScriptType) > 0 && len(fieldName) > 0 {
-		t.fields += fmt.Sprintf("%s%s: %s;\n", t.indent, fieldName, typeScriptType)
+		t.fields += fmt.Sprintf("%s%s%s: %s;\n", t.indent, fieldName, getOptionalFlag(field), typeScriptType)
 		if customTransformation == "" {
 			t.createFromMethodBody += fmt.Sprintf("%s%sresult.%s = source[\"%s\"];\n", t.indent, t.indent, fieldName, fieldName)
 		} else {
@@ -342,12 +356,12 @@ func (t *typeScriptClassBuilder) AddSimpleField(fieldName string, field reflect.
 
 func (t *typeScriptClassBuilder) AddStructField(fieldName string, field reflect.StructField) {
 	fieldType := field.Type.Name()
-	t.fields += fmt.Sprintf("%s%s: %s;\n", t.indent, fieldName, fieldType)
+	t.fields += fmt.Sprintf("%s%s%s: %s;\n", t.indent, fieldName, getOptionalFlag(field), fieldType)
 	t.createFromMethodBody += fmt.Sprintf("%s%sresult.%s = source[\"%s\"] ? %s.createFrom(source[\"%s\"]) : null;\n", t.indent, t.indent, fieldName, fieldName, fieldType, fieldName)
 }
 
 func (t *typeScriptClassBuilder) AddArrayOfStructsField(fieldName string, field reflect.StructField) {
 	fieldType := field.Type.Elem().Name()
-	t.fields += fmt.Sprintf("%s%s: %s[];\n", t.indent, fieldName, fieldType)
+	t.fields += fmt.Sprintf("%s%s%s: %s[];\n", t.indent, fieldName, getOptionalFlag(field), fieldType)
 	t.createFromMethodBody += fmt.Sprintf("%s%sresult.%s = source[\"%s\"] ? source[\"%s\"].map(function(element) { return %s.createFrom(element); }) : null;\n", t.indent, t.indent, fieldName, fieldName, fieldName, fieldType)
 }
